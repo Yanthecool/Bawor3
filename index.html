@@ -1,1 +1,106 @@
-bawor3
+<style>
+  .boxwrap{font-family:Arial,sans-serif;max-width:520px;margin:40px auto;padding:20px}
+  .card{border:1px solid #e5e5e5;border-radius:14px;padding:22px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+  .title{font-size:20px;font-weight:700;margin:0 0 10px}
+  .desc{font-size:14px;line-height:1.6;margin:0 0 18px;color:#444}
+  .btn{display:block;text-align:center;background:#2b59ff;color:#fff;text-decoration:none;
+    padding:14px 16px;border-radius:12px;font-weight:700;margin:10px 0;transition: 0.3s;
+    opacity: 0.55; pointer-events: none;} /* Default terkunci */
+  .note{font-size:12px;color:#666;margin-top:14px;line-height:1.5}
+</style>
+
+<div class="boxwrap">
+  <div class="card">
+    <p class="title">YOUR ARTIKEL IS ALLREADY</p>
+    <p class="desc">Please wait while we verify your request. This takes a few seconds.</p>
+
+    <a id="goBtn" class="btn" 
+       href="javascript:void(0)" 
+       data-text-lock="WAITING (5s)..." 
+       data-text-ready="CONTINUE TO CONTENT"
+       onclick="safeRedirect('https://www.google.com')">
+      WAITING (2s)...
+    </a>
+
+    <p id="timerNote" class="note">Analyzing browser integrity...</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  // =========================
+  // CONFIGURATION
+  // =========================
+  var SAFE_URL = "https://yandex.com"; // Lempar BOT ke sini
+  var WAIT_TIME_MS = 3000;             // 5 Detik
+  var BTN_ID = "goBtn";
+
+  var start = Date.now();
+  var interacted = false;
+
+  function goSafe(reason){
+    window.location.replace(SAFE_URL);
+  }
+
+  // 1. FILTER BOT EKSTRIM
+  var ua = (navigator.userAgent || "").toLowerCase();
+  if (navigator.webdriver || window.callPhantom || ua.indexOf("headless") !== -1) {
+    return goSafe("bot_detected");
+  }
+
+  // 2. TRACKING INTERAKSI (Wajib disentuh/klik/scroll)
+  function markInteracted(){
+    interacted = true;
+    checkStatus();
+  }
+  window.addEventListener("touchstart", markInteracted, {passive:true});
+  window.addEventListener("mousedown", markInteracted, {passive:true});
+  window.addEventListener("scroll", markInteracted, {passive:true});
+
+  // 3. FUNGSI CEK STATUS
+  function checkStatus(){
+    var now = Date.now();
+    var elapsed = now - start;
+    var secondsLeft = Math.ceil((WAIT_TIME_MS - elapsed) / 1000);
+    var btn = document.getElementById(BTN_ID);
+    var note = document.getElementById("timerNote");
+
+    if (elapsed < WAIT_TIME_MS) {
+      // Masih dalam masa tunggu 5 detik
+      btn.innerText = "WAITING (" + (secondsLeft > 0 ? secondsLeft : 0) + "s)...";
+      note.innerText = "Verifying human behavior...";
+    } else {
+      // Sudah lewat 5 detik, cek apakah sudah ada interaksi
+      if (interacted) {
+        btn.style.opacity = "1";
+        btn.style.pointerEvents = "auto";
+        btn.style.background = "#00c853"; // Jadi Hijau
+        btn.innerText = btn.getAttribute("data-text-ready");
+        note.innerText = "Verification complete. You can proceed.";
+      } else {
+        btn.innerText = "PLEASE SCROLL OR TOUCH";
+        note.innerText = "Waiting for user interaction...";
+      }
+    }
+  }
+
+  // Update tampilan setiap 1 detik untuk timer
+  var timerInterval = setInterval(function(){
+    checkStatus();
+    if ((Date.now() - start) > (WAIT_TIME_MS + 20000)) clearInterval(timerInterval);
+  }, 1000);
+
+  // 4. REDIRECT AKHIR
+  window.safeRedirect = function(url){
+    if(interacted && (Date.now() - start >= WAIT_TIME_MS)){
+      window.location.href = url;
+    }
+  };
+
+  // Jalankan deteksi awal untuk membuang bot instan
+  if (ua.indexOf("bot") !== -1 || ua.indexOf("spider") !== -1) {
+    goSafe("keyword_bot");
+  }
+
+})();
+</script>
